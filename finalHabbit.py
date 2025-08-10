@@ -35,7 +35,6 @@ def get_habits(username):
     return {
         row['habit_name']: {
             'last_done': row['last_done'],
-            'streak': row['streak'],
             'total_time': row.get('total_time', 0)  # total_time now in minutes
         } for row in rows
     }
@@ -54,17 +53,17 @@ def refresh_leaderboard(lb_list):
         "\U0001F948",  # 🥈 silver medal
         "\U0001F949"   # 🥉 bronze medal
     ]
-    colors = ["#ffd700", "#c0c0c0", "#cd7f32"]  # gold, silver, bronze
+   # colors = ["#eedc78", "#a1a0a0", "#cea47a"]  # gold, silver, bronze
     for rank, row in enumerate(rows, 1):
         badge = badges[rank-1] if rank <= 3 else ""
         entry = f"{badge} {rank}. {row['username']:<10} {row['rewards']} pts"
         lb_list.insert(tk.END, entry)
-        if rank <= 3:
-            lb_list.itemconfig(rank-1, {'bg': colors[rank-1], 'fg': '#000000'})
+       # if rank <= 3:
+           # lb_list.itemconfig(rank-1, {'bg': colors[rank-1], 'fg': '#000000'})
 
 def animate_reward(frame, points):
     emoji = "🎉"
-    label = tk.Label(frame, text=f"{emoji} +{points} pts! {emoji}", font=("Forte", 20, "bold"), fg="#d84315", bg="#fffde7")
+    label = tk.Label(frame, text=f"{emoji} +{points} pts! {emoji}", font=("Times New Roman", 20, "bold"), fg="#d84315", bg="#fffde7")
     label.place(relx=0.5, y=80, anchor="center")
 
     # Animation: fade in, bounce, fade out
@@ -99,19 +98,19 @@ def show_main_window():
     root = tk.Tk()
     root.title("🏆 Gamified Habit Tracker")
     root.geometry("850x600")
-    root.config(bg="#e0f2f1")
+    root.config(bg="#fdf6e3")
 
     user_data = get_user(current_user)
     habit_data = get_habits(current_user)
 
-    tk.Label(root, text=f"👋 Welcome, {current_user.title()}!", font=("Forte", 20, "bold"), bg="#e0f2f1", fg="#004d40").grid(row=0, column=0, columnspan=3, pady=15)
-    reward_label = tk.Label(root, text=f"⭐ Reward Points: {user_data['rewards']}", font=("Forte", 14, "bold"), bg="#e0f2f1", fg="#00796b")
+    tk.Label(root, text=f"👋 Welcome, {current_user.title()}!", font=("Times New Roman", 20, "bold"), bg="#fdf6e3", fg="#000000").grid(row=0, column=0, columnspan=3, pady=15)
+    reward_label = tk.Label(root, text=f"⭐ Reward Points: {user_data['rewards']}", font=("Times New Roman", 14, "bold"), bg="#fdf6e3", fg="#000000")
     reward_label.grid(row=1, column=0, columnspan=3)
 
-    habit_frame = tk.LabelFrame(root, text="📜 Your Habits", font=("Forte", 13), bg="#ffffff", padx=10, pady=10)
+    habit_frame = tk.LabelFrame(root, text="📜 Your Habits", font=("Times New Roman", 13), bg="#fdf6e3", fg="#000000", padx=10, pady=10)
     habit_frame.grid(row=2, column=0, padx=15, pady=10, sticky="nsew")
 
-    habit_list = tk.Listbox(habit_frame, height=8, font=("Forte", 11), width=25)
+    habit_list = tk.Listbox(habit_frame, height=8, font=("Times New Roman", 11), width=25)
     habit_list.pack(fill="both", expand=True)
 
     def refresh_habit_list():
@@ -152,13 +151,12 @@ def show_main_window():
                 messagebox.showinfo("Already Done", f"You already completed '{habit}' today!")
                 return
 
-            streak = info['streak'] + 1 if last_done == today - datetime.timedelta(days=1) else 1
-            points = streak * 5
+            points = 5
 
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE habits SET last_done=%s, streak=%s WHERE username=%s AND habit_name=%s",
-                           (today, streak, current_user, habit))
+            cursor.execute("UPDATE habits SET last_done=%s WHERE username=%s AND habit_name=%s",
+                           (today, current_user, habit))
             cursor.execute("UPDATE users SET rewards = rewards + %s WHERE username=%s", (points, current_user))
             conn.commit()
             cursor.close()
@@ -177,8 +175,7 @@ def show_main_window():
             habit = habit_list.get(selected)
             confirm = messagebox.askyesno("Delete Habit", f"Are you sure you want to delete '{habit}'?")
             if confirm:
-                streak = habit_data[habit]['streak']
-                points_to_deduct = streak * 5
+                points_to_deduct = 5
                 conn = get_connection()
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM habits WHERE username=%s AND habit_name=%s", (current_user, habit))
@@ -193,7 +190,7 @@ def show_main_window():
                 update_chart()
                 refresh_leaderboard(lb_list)
 
-    btn_frame = tk.Frame(habit_frame, bg="#ffffff")
+    btn_frame = tk.Frame(habit_frame, bg="#fdf6e3")
     btn_frame.pack(pady=5, fill="x")
     ttk.Button(btn_frame, text="Add Habit", command=add_habit, width=10).pack(side="left", padx=5)
     ttk.Button(btn_frame, text="Mark Done", command=mark_done, width=10).pack(side="left", padx=5)
@@ -251,28 +248,28 @@ def show_main_window():
             time_var.set(0)
             update_label()
 
-        timer_label = tk.Label(timer_win, text="00:00", font=("Forte", 28), bg="#e0f2f1", fg="#00796b")
+        timer_label = tk.Label(timer_win, text="00:00", font=("Times New Roman", 28), bg="#e0f2f1", fg="#000000")
         timer_label.pack(pady=15)
         update_label()
 
         btns = tk.Frame(timer_win, bg="#e0f2f1")
         btns.pack(pady=5)
         style = ttk.Style(timer_win)
-        style.configure("TButton", font=("Forte", 11), padding=6, relief="flat", background="#ffffff", foreground="#00796b")
+        style.configure("TButton", font=("Times New Roman", 11), padding=6, relief="flat", background="#ffffff", foreground="#000000")
         ttk.Button(btns, text="Start", command=start, style="TButton", width=10).pack(side="left", padx=7)
         ttk.Button(btns, text="Stop", command=stop, style="TButton", width=10).pack(side="left", padx=7)
         ttk.Button(btns, text="Reset", command=reset, style="TButton", width=10).pack(side="left", padx=7)
 
 
-    lb_frame = tk.LabelFrame(root, text="🏅 Leaderboard", font=("Forte", 13), bg="#e0f2f1")
+    lb_frame = tk.LabelFrame(root, text="🏅 Leaderboard", font=("Times New Roman", 13), bg="#fdf6e3", fg="#000000")
     lb_frame.grid(row=2, column=1, padx=15, pady=10, sticky="nsew")
-    lb_list = tk.Listbox(lb_frame, font=("Forte", 12), width=20)
+    lb_list = tk.Listbox(lb_frame, font=("Times New Roman", 12), width=20)
     lb_list.pack(fill="both", expand=True)
     refresh_leaderboard(lb_list)
 
-    chart_frame = tk.LabelFrame(root, text="📊 Habit Progress", font=("Forte", 13), bg="#ffffff", padx=10, pady=10)
+    chart_frame = tk.LabelFrame(root, text="📊 Habit Progress", font=("Times New Roman", 13), bg="#fdf6e3", fg="#000000", padx=10, pady=10)
     chart_frame.grid(row=2, column=2, padx=15, pady=10, sticky="nsew")
-    canvas = tk.Canvas(chart_frame, height=300, width=280, bg="#ffffff", highlightthickness=0)
+    canvas = tk.Canvas(chart_frame, height=300, width=280, bg="#fdf6e3", highlightthickness=0)
     canvas.pack(fill="both", expand=True)
 
     def update_chart():
@@ -281,26 +278,27 @@ def show_main_window():
         spacing = 32
         x0 = 90
         for i, (habit, info) in enumerate(habit_data.items()):
-            streak = info["streak"]
             total_time = info.get("total_time", 0)  # total_time in minutes
             hours = total_time // 60
             mins = total_time % 60
             y = i * spacing + 10
-            canvas.create_text(5, y, anchor="nw", text=f"📌 {habit}", font=("Forte", 11))
-            bar_length = min(streak * 20, 220)
-            canvas.create_rectangle(x0, y - 2, x0 + bar_length, y + bar_height - 2, fill="#00796b")
+            # Show tick if last_done is today
+            tick = " ✔️" if info.get('last_done') == datetime.date.today() else ""
+            canvas.create_text(5, y, anchor="nw", text=f"📌 {habit}{tick}", font=("Times New Roman", 11))
+            bar_length = min(total_time, 220)
+            canvas.create_rectangle(x0, y - 2, x0 + bar_length, y + bar_height - 2, fill="#000000")
             time_str = f"{hours}h {mins}m"
-            canvas.create_text(x0 + bar_length + 5, y, anchor="nw", text=f"{streak}🔥 | {time_str}", font=("Forte", 11), fill="#004d40")
+            canvas.create_text(x0 + bar_length + 5, y, anchor="nw", text=f"{time_str}", font=("Times New Roman", 11), fill="#000000")
 
     update_chart()
 
     # Timer bar at the bottom
-    timer_frame = tk.LabelFrame(root, text="⏰ Timer", font=("Forte", 13), bg="#e0f2f1")
+    timer_frame = tk.LabelFrame(root, text="⏰ Timer", font=("Times New Roman", 13), bg="#fdf6e3", fg="#000000")
     timer_frame.grid(row=3, column=0, columnspan=3, padx=15, pady=10, sticky="ew")
-    timer_icon = tk.Label(timer_frame, text="⏱️", font=("Forte", 32), bg="#e0f2f1", fg="#00796b")
+    timer_icon = tk.Label(timer_frame, text="⏱️", font=("Times New Roman", 32), bg="#fdf6e3", fg="#000000")
     timer_icon.pack(side="left", padx=10)
     timer_display_var = tk.StringVar(value="00:00")
-    timer_display = tk.Label(timer_frame, textvariable=timer_display_var, font=("Forte", 28), bg="#e0f2f1", fg="#00796b")
+    timer_display = tk.Label(timer_frame, textvariable=timer_display_var, font=("Times New Roman", 28), bg="#fdf6e3", fg="#000000")
     timer_display.pack(side="left", padx=10)
 
     timer_running = [False]
@@ -329,10 +327,10 @@ def show_main_window():
         timer_seconds[0] = 0
         update_main_timer()
 
-    btns = tk.Frame(timer_frame, bg="#e0f2f1")
+    btns = tk.Frame(timer_frame, bg="#fdf6e3")
     btns.pack(side="left", padx=10)
     style = ttk.Style(timer_frame)
-    style.configure("TButton", font=("Forte", 11), padding=6, relief="flat", background="#ffffff", foreground="#00796b")
+    style.configure("TButton", font=("Times New Roman", 11), padding=6, relief="flat", background="#ffffff", foreground="#000000")
     ttk.Button(btns, text="Start", command=main_timer_start, style="TButton", width=10).pack(side="left", padx=7)
     ttk.Button(btns, text="Stop", command=main_timer_stop, style="TButton", width=10).pack(side="left", padx=7)
     ttk.Button(btns, text="Reset", command=main_timer_reset, style="TButton", width=10).pack(side="left", padx=7)
@@ -375,15 +373,15 @@ def show_login_window():
     login = tk.Tk()
     login.title("Login | Habit Tracker")
     login.geometry("300x200")
-    login.config(bg="#e0f2f1")
+    login.config(bg="#fdf6e3")
 
-    tk.Label(login, text="Login", font=("Forte", 16, "bold"), bg="#e0f2f1", fg="#00796b").grid(row=0, column=0, columnspan=2, pady=10)
-    tk.Label(login, text="Username:", bg="#e0f2f1", font=("Forte", 12)).grid(row=1, column=0, sticky="e", padx=10)
-    username_entry = tk.Entry(login, font=("Forte", 12), width=15)
+    username_entry = tk.Entry(login, font=("Times New Roman", 12), width=15)
     username_entry.grid(row=1, column=1, pady=5, padx=10)
-    tk.Label(login, text="Password:", bg="#e0f2f1", font=("Forte", 12)).grid(row=2, column=0, sticky="e", padx=10)
-    password_entry = tk.Entry(login, font=("Forte", 12), width=15, show="*")
+    password_entry = tk.Entry(login, font=("Times New Roman", 12), width=15, show="*")
     password_entry.grid(row=2, column=1, pady=5, padx=10)
+    tk.Label(login, text="Login", font=("Times New Roman", 16, "bold"), bg="#fdf6e3", fg="#000000").grid(row=0, column=0, columnspan=2, pady=10)
+    tk.Label(login, text="Username:", bg="#fdf6e3", font=("Times New Roman", 12), fg="#000000").grid(row=1, column=0, sticky="e", padx=10)
+    tk.Label(login, text="Password:", bg="#fdf6e3", font=("Times New Roman", 12), fg="#000000").grid(row=2, column=0, sticky="e", padx=10)
 
     def login_user():
         username = username_entry.get().strip()
@@ -404,18 +402,18 @@ def show_signup_window():
     signup = tk.Tk()
     signup.title("Sign Up | Habit Tracker")
     signup.geometry("320x220")
-    signup.config(bg="#e0f2f1")
+    signup.config(bg="#fdf6e3")
 
-    tk.Label(signup, text="Create Account", font=("Forte", 16, "bold"), bg="#e0f2f1", fg="#00796b").grid(row=0, column=0, columnspan=2, pady=10)
-    tk.Label(signup, text="Username:", bg="#e0f2f1", font=("Forte", 12)).grid(row=1, column=0, sticky="e", padx=10)
-    username_entry = tk.Entry(signup, font=("Forte", 12), width=18)
+    username_entry = tk.Entry(signup, font=("Times New Roman", 12), width=18)
     username_entry.grid(row=1, column=1, pady=5)
-    tk.Label(signup, text="Password:", bg="#e0f2f1", font=("Forte", 12)).grid(row=2, column=0, sticky="e", padx=10)
-    password_entry = tk.Entry(signup, font=("Forte", 12), width=18, show="*")
+    password_entry = tk.Entry(signup, font=("Times New Roman", 12), width=18, show="*")
     password_entry.grid(row=2, column=1, pady=5)
-    tk.Label(signup, text="Confirm:", bg="#e0f2f1", font=("Forte", 12)).grid(row=3, column=0, sticky="e", padx=10)
-    confirm_entry = tk.Entry(signup, font=("Forte", 12), width=18, show="*")
+    confirm_entry = tk.Entry(signup, font=("Times New Roman", 12), width=18, show="*")
     confirm_entry.grid(row=3, column=1, pady=5)
+    tk.Label(signup, text="Create Account", font=("Times New Roman", 16, "bold"), bg="#fdf6e3", fg="#000000").grid(row=0, column=0, columnspan=2, pady=10)
+    tk.Label(signup, text="Username:", bg="#fdf6e3", font=("Times New Roman", 12), fg="#000000").grid(row=1, column=0, sticky="e", padx=10)
+    tk.Label(signup, text="Password:", bg="#fdf6e3", font=("Times New Roman", 12), fg="#000000").grid(row=2, column=0, sticky="e", padx=10)
+    tk.Label(signup, text="Confirm:", bg="#fdf6e3", font=("Times New Roman", 12), fg="#000000").grid(row=3, column=0, sticky="e", padx=10)
 
     def register_user():
         username = username_entry.get().strip()
@@ -449,9 +447,9 @@ def show_welcome_window():
     welcome = tk.Tk()
     welcome.title("Welcome | Habit Tracker")
     welcome.geometry("300x200")
-    welcome.config(bg="#e0f2f1")
+    welcome.config(bg="#fdf6e3")
 
-    tk.Label(welcome, text="Habit Tracker", font=("Forte", 18, "bold"), bg="#e0f2f1", fg="#00796b").pack(pady=15)
+    tk.Label(welcome, text="Habit Tracker", font=("Times New Roman", 18, "bold"), bg="#fdf6e3", fg="#000000").pack(pady=15)
     ttk.Button(welcome, text="Login", command=lambda: [welcome.destroy(), show_login_window()]).pack(pady=10)
     ttk.Button(welcome, text="Sign Up", command=lambda: [welcome.destroy(), show_signup_window()]).pack()
 
