@@ -48,24 +48,51 @@ def refresh_leaderboard(lb_list):
     cursor.close()
     conn.close()
     lb_list.delete(0, tk.END)
+    # Use colored badge icons for top three and highlight their background
+    badges = [
+        "\U0001F947",  # 🥇 gold medal
+        "\U0001F948",  # 🥈 silver medal
+        "\U0001F949"   # 🥉 bronze medal
+    ]
+    colors = ["#ffd700", "#c0c0c0", "#cd7f32"]  # gold, silver, bronze
     for rank, row in enumerate(rows, 1):
-        lb_list.insert(tk.END, f"{rank}. {row['username']:<10} {row['rewards']} pts")
-        #if rank == 1:
-           # lb_list.itemconfig(tk.END, {'bg': '#ffeb3b'}) # highlight the topper
+        badge = badges[rank-1] if rank <= 3 else ""
+        entry = f"{badge} {rank}. {row['username']:<10} {row['rewards']} pts"
+        lb_list.insert(tk.END, entry)
+        if rank <= 3:
+            lb_list.itemconfig(rank-1, {'bg': colors[rank-1], 'fg': '#000000'})
 
 def animate_reward(frame, points):
     emoji = "🎉"
-    label = tk.Label(frame, text=f"{emoji} +{points} pts! {emoji}", font=("Forte", 18, "bold"), fg="#00796b", bg="#e0f2f1")
-    label.place(relx=0.5, y=50, anchor="center")
+    label = tk.Label(frame, text=f"{emoji} +{points} pts! {emoji}", font=("Forte", 20, "bold"), fg="#d84315", bg="#fffde7")
+    label.place(relx=0.5, y=80, anchor="center")
 
-    def animate(step=0):
-        if step < 30:
-            label.place_configure(y=50 - step*2, relx=0.5 + step*0.005)
-            label.after(30, animate, step+1)
+    # Animation: fade in, bounce, fade out
+    def fade_in(step=0):
+        if step <= 10:
+            alpha = int(25 * step)
+            label.config(fg=f"#d84315", bg="#fffde7")
+            label.after(30, fade_in, step+1)
+        else:
+            bounce(0)
+
+    def bounce(step):
+        if step < 15:
+            y = 80 - abs(10 - step) * 3
+            label.place_configure(y=y)
+            label.after(30, bounce, step+1)
+        else:
+            fade_out(0)
+
+    def fade_out(step):
+        if step <= 10:
+            alpha = 255 - int(25 * step)
+            label.config(fg=f"#d84315", bg="#fffde7")
+            label.after(30, fade_out, step+1)
         else:
             label.destroy()
 
-    animate()
+    fade_in()
 
 def show_main_window():
     global current_user
@@ -125,21 +152,13 @@ def show_main_window():
                 messagebox.showinfo("Already Done", f"You already completed '{habit}' today!")
                 return
 
-            try:
-                hours = float(simpledialog.askstring("Time Spent", f"How many hours did you spend on '{habit}' today? (24-hour format)"))
-                if hours < 0 or hours > 24:
-                    raise ValueError("Invalid hours")
-            except:
-                messagebox.showerror("Error", "Please enter a valid number of hours (0-24).")
-                return
-
             streak = info['streak'] + 1 if last_done == today - datetime.timedelta(days=1) else 1
             points = streak * 5
 
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE habits SET last_done=%s, streak=%s, total_time = total_time + %s WHERE username=%s AND habit_name=%s",
-                           (today, streak, hours, current_user, habit))
+            cursor.execute("UPDATE habits SET last_done=%s, streak=%s WHERE username=%s AND habit_name=%s",
+                           (today, streak, current_user, habit))
             cursor.execute("UPDATE users SET rewards = rewards + %s WHERE username=%s", (points, current_user))
             conn.commit()
             cursor.close()
@@ -244,7 +263,6 @@ def show_main_window():
         ttk.Button(btns, text="Stop", command=stop, style="TButton", width=10).pack(side="left", padx=7)
         ttk.Button(btns, text="Reset", command=reset, style="TButton", width=10).pack(side="left", padx=7)
 
-    ttk.Button(btn_frame, text="Start Timer", command=start_timer, width=10).pack(side="left", padx=5)
 
     lb_frame = tk.LabelFrame(root, text="🏅 Leaderboard", font=("Forte", 13), bg="#e0f2f1")
     lb_frame.grid(row=2, column=1, padx=15, pady=10, sticky="nsew")
@@ -276,12 +294,74 @@ def show_main_window():
 
     update_chart()
 
-    ch_frame = tk.LabelFrame(root, text="🔥 Daily Challenge", font=("Forte", 13), bg="#e0f2f1")
-    ch_frame.grid(row=3, column=0, columnspan=3, padx=15, pady=10, sticky="ew")
-    ch_text = tk.StringVar()
-    ch_text.set(random.choice(challenges))
-    tk.Label(ch_frame, textvariable=ch_text, font=("Forte", 13, "italic"), bg="#e0f2f1", fg="#d32f2f").pack()
-    ttk.Button(ch_frame, text="New Challenge", command=lambda: ch_text.set(random.choice(challenges))).pack(pady=5)
+    # Timer bar at the bottom
+    timer_frame = tk.LabelFrame(root, text="⏰ Timer", font=("Forte", 13), bg="#e0f2f1")
+    timer_frame.grid(row=3, column=0, columnspan=3, padx=15, pady=10, sticky="ew")
+    timer_icon = tk.Label(timer_frame, text="⏱️", font=("Forte", 32), bg="#e0f2f1", fg="#00796b")
+    timer_icon.pack(side="left", padx=10)
+    timer_display_var = tk.StringVar(value="00:00")
+    timer_display = tk.Label(timer_frame, textvariable=timer_display_var, font=("Forte", 28), bg="#e0f2f1", fg="#00796b")
+    timer_display.pack(side="left", padx=10)
+
+    timer_running = [False]
+    timer_seconds = [0]
+
+    def update_main_timer():
+        mins, secs = divmod(timer_seconds[0], 60)
+        timer_display_var.set(f"{mins:02d}:{secs:02d}")
+
+    def main_timer_tick():
+        if timer_running[0]:
+            timer_seconds[0] += 1
+            update_main_timer()
+            root.after(1000, main_timer_tick)
+
+    def main_timer_start():
+        if not timer_running[0]:
+            timer_running[0] = True
+            main_timer_tick()
+
+    def main_timer_stop():
+        timer_running[0] = False
+
+    def main_timer_reset():
+        timer_running[0] = False
+        timer_seconds[0] = 0
+        update_main_timer()
+
+    btns = tk.Frame(timer_frame, bg="#e0f2f1")
+    btns.pack(side="left", padx=10)
+    style = ttk.Style(timer_frame)
+    style.configure("TButton", font=("Forte", 11), padding=6, relief="flat", background="#ffffff", foreground="#00796b")
+    ttk.Button(btns, text="Start", command=main_timer_start, style="TButton", width=10).pack(side="left", padx=7)
+    ttk.Button(btns, text="Stop", command=main_timer_stop, style="TButton", width=10).pack(side="left", padx=7)
+    ttk.Button(btns, text="Reset", command=main_timer_reset, style="TButton", width=10).pack(side="left", padx=7)
+
+    def main_timer_finish():
+        selected = habit_list.curselection()
+        if not selected:
+            messagebox.showinfo("Select Habit", "Please select a habit to add the timer progress.")
+            return
+        habit = habit_list.get(selected)
+        elapsed_minutes = timer_seconds[0] // 60
+        if elapsed_minutes > 0:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE habits SET total_time = total_time + %s WHERE username=%s AND habit_name=%s", (elapsed_minutes, current_user, habit))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            nonlocal habit_data
+            habit_data = get_habits(current_user)
+            update_chart()
+            refresh_habit_list()
+            messagebox.showinfo("Timer Finished", f"Added {elapsed_minutes} minutes to '{habit}'.")
+            main_timer_reset()
+        else:
+            messagebox.showinfo("No Time", "Timer must run for at least 1 minute to add progress.")
+
+    ttk.Button(btns, text="Finish", command=main_timer_finish, style="TButton", width=10).pack(side="left", padx=7)
+    update_main_timer()
 
     root.grid_columnconfigure(0, weight=2)
     root.grid_columnconfigure(1, weight=1)
