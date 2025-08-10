@@ -85,14 +85,7 @@ def show_main_window():
     habit_frame.grid(row=2, column=0, padx=15, pady=10, sticky="nsew")
 
     habit_list = tk.Listbox(habit_frame, height=8, font=("Forte", 11), width=25)
-    habit_list.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-
-    btn_frame = tk.Frame(habit_frame, bg="#ffffff")
-    btn_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=(0,5))
-    btn_frame.grid_columnconfigure(0, weight=1)
-    btn_frame.grid_columnconfigure(1, weight=1)
-    btn_frame.grid_columnconfigure(2, weight=1)
-    btn_frame.grid_columnconfigure(3, weight=1)
+    habit_list.pack(fill="both", expand=True)
 
     def refresh_habit_list():
         nonlocal habit_data
@@ -181,6 +174,12 @@ def show_main_window():
                 update_chart()
                 refresh_leaderboard(lb_list)
 
+    btn_frame = tk.Frame(habit_frame, bg="#ffffff")
+    btn_frame.pack(pady=5, fill="x")
+    ttk.Button(btn_frame, text="Add Habit", command=add_habit, width=10).pack(side="left", padx=5)
+    ttk.Button(btn_frame, text="Mark Done", command=mark_done, width=10).pack(side="left", padx=5)
+    ttk.Button(btn_frame, text="Delete Habit", command=delete_habit, width=10).pack(side="left", padx=5)
+
     def start_timer():
         selected = habit_list.curselection()
         if not selected:
@@ -208,6 +207,7 @@ def show_main_window():
         def start():
             running[0] = True
             tick()
+
 
         def stop():
             running[0] = False
@@ -238,14 +238,13 @@ def show_main_window():
 
         btns = tk.Frame(timer_win, bg="#e0f2f1")
         btns.pack(pady=5)
-        ttk.Button(btns, text="Start", command=start, width=8).pack(side="left", padx=5)
-        ttk.Button(btns, text="Stop", command=stop, width=8).pack(side="left", padx=5)
-        ttk.Button(btns, text="Reset", command=reset, width=8).pack(side="left", padx=5)
+        style = ttk.Style(timer_win)
+        style.configure("TButton", font=("Forte", 11), padding=6, relief="flat", background="#ffffff", foreground="#00796b")
+        ttk.Button(btns, text="Start", command=start, style="TButton", width=10).pack(side="left", padx=7)
+        ttk.Button(btns, text="Stop", command=stop, style="TButton", width=10).pack(side="left", padx=7)
+        ttk.Button(btns, text="Reset", command=reset, style="TButton", width=10).pack(side="left", padx=7)
 
-    ttk.Button(btn_frame, text="Add Habit", command=add_habit, width=10).grid(row=0, column=0, padx=5, pady=2)
-    ttk.Button(btn_frame, text="Mark Done", command=mark_done, width=10).grid(row=0, column=1, padx=5, pady=2)
-    ttk.Button(btn_frame, text="Delete Habit", command=delete_habit, width=10).grid(row=0, column=2, padx=5, pady=2)
-    ttk.Button(btn_frame, text="Start Timer", command=start_timer, width=10).grid(row=0, column=3, padx=5, pady=2)
+    ttk.Button(btn_frame, text="Start Timer", command=start_timer, width=10).pack(side="left", padx=5)
 
     lb_frame = tk.LabelFrame(root, text="🏅 Leaderboard", font=("Forte", 13), bg="#e0f2f1")
     lb_frame.grid(row=2, column=1, padx=15, pady=10, sticky="nsew")
